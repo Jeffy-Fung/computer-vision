@@ -5,6 +5,8 @@ __pycache__/
 
 output.avi
 
+yolo11n.pt
+
 # C extensions
 *.so
 
