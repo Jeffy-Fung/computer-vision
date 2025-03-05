@@ -1,4 +1,5 @@
 import cv2
+from ultralytics import YOLO
 
 
 def record_video(
@@ -24,6 +25,9 @@ def record_video(
 	fourcc = cv2.VideoWriter_fourcc(*"XVID")
 	out = cv2.VideoWriter(output_filename, fourcc, fps, resolution)
 
+	# Load YOLO model
+	model = YOLO("yolo11n.pt")  # Load the YOLO model
+
 	print(f"Recording started. Press 'q' to stop recording.")
 
 	while cap.isOpened():
@@ -31,6 +35,20 @@ def record_video(
 		if not ret:
 			print("Failed to grab frame")
 			break
+
+		# Object detection
+		results = model(frame)  # Perform detection
+		detections = results[0].boxes  # Get the detected boxes
+
+		# Process detections
+		for box in detections:
+			x1, y1, x2, y2 = map(int, box.xyxy[0])  # Get box coordinates
+			confidence = box.conf[0]  # Get confidence score
+			label = f"{box.cls[0]}: {confidence:.2f}"  # Create label with object class and confidence
+
+			# Draw bounding box and label
+			cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Draw box
+			cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)  # Draw label
 
 		# Write the frame to the output file
 		out.write(frame)
