@@ -41,10 +41,11 @@ def record_video(
 		detections = results[0].boxes  # Get the detected boxes
 
 		# Process detections
-		for box in detections:
+		for i, box in enumerate(detections):  # Enumerate to get index
 			x1, y1, x2, y2 = map(int, box.xyxy[0])  # Get box coordinates
 			confidence = box.conf[0]  # Get confidence score
-			label = f"{box.cls[0]}: {confidence:.2f}"  # Create label with object class and confidence
+			object_name = results[0].names[int(box.cls[0])]
+			label = f"{object_name}: {confidence:.2f}"  # Create label with object class and confidence
 
 			# Draw bounding box and label
 			cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Draw box
