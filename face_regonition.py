@@ -3,7 +3,7 @@ from ultralytics import YOLO
 
 
 def record_video(
-	output_filename="output.avi", camera_id=0, fps=20.0, resolution=(640, 480)
+	output_filename="outputs/output.avi", camera_id=0, fps=20.0, resolution=(640, 480)
 ):
 	"""
 	Record video from webcam and save to file
