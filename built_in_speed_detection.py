@@ -1,38 +1,70 @@
-from ultralytics import YOLO
-from ultralytics.solutions import speed_estimation
 import cv2
+from ultralytics import solutions
+import os
 
-model = YOLO("yolo11s.pt")
-names = model.model.names
 
-cap = cv2.VideoCapture("/pathFreeway_night.mp4")
-assert cap.isOpened(), "Error reading video file"
-w, h, fps = (int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
+def record_video(
+	output_filename="outputs/output.mp4", camera_id=0, fps=20.0, resolution=(640, 480)
+):
+	"""
+	Record video from webcam and save to file
 
-video_writer = cv2.VideoWriter("/path/speed_estimation.avi",
-                               cv2.VideoWriter_fourcc(*'mp4v'),
-                               fps,
-                               (w, h))
+	Parameters:
+	output_filename (str): Path to save the recorded video
+	camera_id (int): Camera index (default 0 for primary webcam)
+	fps (float): Frames per second for recording
+	resolution (tuple): Width and height of the video frame
+	"""
+	# Initialize the webcam
+	cap = cv2.VideoCapture(camera_id)
 
-line_pts = [(0, 400), (1280, 400)]
+	# Set resolution
+	cap.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
+	cap.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
 
-speed_obj = speed_estimation.SpeedEstimator()
-speed_obj.set_args(reg_pts=line_pts,
-                   names=names,
-                   view_img=True)
+	# Define the codec and create VideoWriter object
+	fourcc = cv2.VideoWriter_fourcc(*"XVID")
+	
+	# Create output directory if it doesn't exist
+	os.makedirs(os.path.dirname(output_filename), exist_ok=True)
+	out = cv2.VideoWriter(output_filename, fourcc, fps, resolution)
 
-while cap.isOpened():
+	# Load YOLO model
+	speedestimator = solutions.SpeedEstimator(
+		region=[(240, 0), (240, 640)],
+		model="yolo11n.pt",
+		show=True,
+		classes=[0],  # Track only person class
+		names={0: "person"},  # Map class ID to name
+		view_img=True,  # Show the video stream
+		line_thickness=2,  # Thickness of the detection line
+		region_thickness=2,  # Thickness of the region line
+	)
 
-  success, im0 = cap.read()
-  if not success:
-    print("Video frame is empty or video processing has been successfully completed.")
-    break
+	print(f"Recording started. Press 'q' to stop recording.")
 
-  tracks = model.track(im0, persist=True, show=False)
+	while cap.isOpened():
+		ret, frame = cap.read()
+		if not ret:
+			print("Failed to grab frame")
+			break
 
-  im0 = speed_obj.estimate_speed(im0, tracks)
-  video_writer.write(im0)
+		# Process frame with speed estimation
+		results = speedestimator.process(frame)
+		# Write the processed frame to the output file
+		out.write(results.plot_im)
 
-cap.release()
-video_writer.release()
-cv2.destroyAllWindows()
+		# Break the loop when 'q' is pressed
+		if cv2.waitKey(1) & 0xFF == ord("q"):
+			break
+
+	# Release everything when done
+	cap.release()
+	out.release()
+	cv2.destroyAllWindows()
+	print(f"Recording saved to {output_filename}")
+
+
+# Example usage
+if __name__ == "__main__":
+	record_video()
