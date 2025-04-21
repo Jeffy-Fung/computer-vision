@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 output.avi
+outputs/
 
 yolo11n.pt
 yolo11s.pt
